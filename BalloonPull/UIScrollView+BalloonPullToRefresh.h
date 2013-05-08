@@ -14,6 +14,11 @@ typedef enum {
     BalloonPullToRefreshStateLoading
 } BalloonPullToRefreshState;
 
+typedef enum {
+    BalloonPullToRefreshWaitAnimationSpin = 0,
+    BalloonPullToRefreshWaitAnimationFade
+} BalloonPullToRefreshWaitAnimation;
+
 @class BalloonPullToRefreshView;
 
 @interface UIScrollView (BalloonPullToRefresh)
@@ -43,6 +48,7 @@ typedef enum {
 }
 
 @property (nonatomic, readonly) BalloonPullToRefreshState currentState;
+@property (nonatomic, assign) BalloonPullToRefreshWaitAnimation waitingAnimation;
 
 - (void)startAnimating;
 - (void)didFinishRefresh;

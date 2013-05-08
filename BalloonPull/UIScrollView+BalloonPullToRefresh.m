@@ -111,6 +111,7 @@ static char UIScrollViewPullToRefreshView;
 @synthesize scrollView = _scrollView;
 @synthesize showsPullToRefresh = _showsPullToRefresh;
 @synthesize particles = _particles;
+@synthesize waitingAnimation = _waitingAnimation;
 
 - (id)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
@@ -232,7 +233,7 @@ static char UIScrollViewPullToRefreshView;
     [self.scrollView triggerPullToRefresh];    
 }
 
-- (void)doAnimationStepForRandomWaitingAnimation {
+- (void)doSpinAnimationStepForWaitingAnimation {
     animationStep ++;
     
     for (int i=0; i<self.particles.count; i++) {
@@ -246,10 +247,24 @@ static char UIScrollViewPullToRefreshView;
     }
 }
 
+- (void)doFadeAnimationStepForWaitingAnimation {
+    
+    int prevAnimationStep = animationStep;
+    
+    animationStep = (animationStep + 1) % self.particles.count;
+    
+    [self animateAlphaForView:self.particles[prevAnimationStep] newAlpha:0.3];
+    [self animateAlphaForView:self.particles[animationStep] newAlpha:0.8];
+}
+
 - (void)onAnimationTimer {
     
     if (isRefreshing) {
-        [self doAnimationStepForRandomWaitingAnimation];
+        if (self.waitingAnimation == BalloonPullToRefreshWaitAnimationSpin) {
+            [self doSpinAnimationStepForWaitingAnimation];
+        } else {
+            [self doFadeAnimationStepForWaitingAnimation];
+        }
     } else {
         if (lastOffset < 30) {
             [animationTimer invalidate];
@@ -268,6 +283,17 @@ static char UIScrollViewPullToRefreshView;
         
         [self contentOffsetChanged:-lastOffset];
     }
+}
+
+- (void)animateAlphaForView: (UIView *)viewToAnimate newAlpha: (float)newAlpha {
+    [UIView animateWithDuration:0.3
+                          delay:0.0
+                        options: UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+                         viewToAnimate.alpha = newAlpha;
+                     }
+                     completion:^(BOOL finished){
+                     }];
 }
 
 - (void)startAnimating {
@@ -302,7 +328,13 @@ static char UIScrollViewPullToRefreshView;
                      }
                      completion:^(BOOL finished){
                          if (finished) {
-                             animationTimer = [NSTimer scheduledTimerWithTimeInterval:0.02 target:self selector:@selector(onAnimationTimer) userInfo:nil repeats:YES];
+                             float timeInterval = 0.02;
+                             
+                             if (self.waitingAnimation == BalloonPullToRefreshWaitAnimationFade) {
+                                 timeInterval = 0.2;
+                             }
+                             
+                             animationTimer = [NSTimer scheduledTimerWithTimeInterval:timeInterval target:self selector:@selector(onAnimationTimer) userInfo:nil repeats:YES];
                          }
                      }];
 }
@@ -319,6 +351,12 @@ static char UIScrollViewPullToRefreshView;
     
     [animationTimer invalidate];
     animationTimer = nil;
+    
+    for (int i=0; i<self.particles.count; i++) {
+        UIView *particleView = self.particles [i];
+        
+        particleView.alpha = 0.5;
+    }
     
     animationTimer = [NSTimer scheduledTimerWithTimeInterval:0.01 target:self selector:@selector(onAnimationTimer) userInfo:nil repeats:YES];
 }

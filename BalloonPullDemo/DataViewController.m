@@ -58,6 +58,8 @@
              [weakSelf refreshTriggered];
          });
      }];
+    
+    self.tableView.pullToRefreshController.waitingAnimation = BalloonPullToRefreshWaitAnimationFade;
 }
 
 - (void)refreshTriggered {
