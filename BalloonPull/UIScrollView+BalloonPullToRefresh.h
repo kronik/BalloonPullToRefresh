@@ -31,16 +31,7 @@ typedef enum {
 
 @end
 
-@interface BalloonPullToRefreshView : UIImageView {
-    UIImageView *bottomLeftView;
-    UIImageView *bottomRightView;
-    
-    UIImageView *topLeftView;
-    UIImageView *topRightView;
-    
-    UIImageView *middleLeftView;
-    UIImageView *middleRightView;
-    
+@interface BalloonPullToRefreshView : UIImageView {    
     BOOL isRefreshing;
     NSTimer *animationTimer;
     float lastOffset;
@@ -49,6 +40,7 @@ typedef enum {
 
 @property (nonatomic, readonly) BalloonPullToRefreshState currentState;
 @property (nonatomic, assign) BalloonPullToRefreshWaitAnimation waitingAnimation;
+@property (nonatomic) int particlesCount;
 
 - (void)startAnimating;
 - (void)didFinishRefresh;

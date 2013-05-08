@@ -15,6 +15,9 @@
 #define BalloonPullToRefreshViewHeight 300
 #define BalloonPullToRefreshViewTriggerAreaHeight 101
 #define BalloonPullToRefreshViewParticleSize 0.5
+#define BalloonPullToRefreshViewAnimationRadius 35.0
+#define BalloonPullToRefreshViewParticlesCount 8
+#define BalloonPullToRefreshViewAnimationAngle (360.0 / self.particlesCount)
 
 @interface BalloonPullToRefreshView ()
 
@@ -112,6 +115,7 @@ static char UIScrollViewPullToRefreshView;
 @synthesize showsPullToRefresh = _showsPullToRefresh;
 @synthesize particles = _particles;
 @synthesize waitingAnimation = _waitingAnimation;
+@synthesize particlesCount = _particlesCount;
 
 - (id)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
@@ -122,39 +126,41 @@ static char UIScrollViewPullToRefreshView;
         
         self.backgroundColor = [UIColor colorWithRed:0.65f green:0.83f blue:0.93f alpha:1.00f];
         self.clipsToBounds = YES;
-        
-        bottomLeftView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"circle_blue"]];
-        bottomRightView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"circle_red"]];
-        topLeftView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"circle_green"]];
-        topRightView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"circle_orange"]];
-        middleLeftView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"circle_purple"]];
-        middleRightView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"circle_seagreen"]];
-
-        [self addSubview: bottomLeftView];
-        [self addSubview: bottomRightView];
-        [self addSubview: topLeftView];
-        [self addSubview: topRightView];
-        [self addSubview: middleLeftView];
-        [self addSubview: middleRightView];
-
-        _particles = @[bottomLeftView, bottomRightView, topLeftView, topRightView, middleLeftView, middleRightView];
-        
-        for (int i=0; i<self.particles.count; i++) {
-            UIView *particleView = self.particles [i];
-            
-            particleView.alpha = 0.5;
-            particleView.backgroundColor = [UIColor clearColor];
-            particleView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize, BalloonPullToRefreshViewParticleSize);
-            
-            // Optionally:
-            //[self setCornerForView: particleView];
-        }
+        self.particlesCount = BalloonPullToRefreshViewParticlesCount;        
     }
 
     return self;
 }
 
-- (void)willMoveToSuperview:(UIView *)newSuperview { 
+- (void) setParticlesCount:(int)particlesCount {
+    
+    for (int i=0; i<self.particles.count; i++) {
+        UIView *particleView = self.particles [i];
+        [particleView removeFromSuperview];
+    }
+    
+    _particlesCount = particlesCount;
+    
+    NSMutableArray *particles = [NSMutableArray new];
+    NSArray *images = @[@"circle_blue", @"circle_red", @"circle_green", @"circle_orange", @"circle_purple", @"circle_seagreen"];
+    
+    for (int i=0; i<self.particlesCount; i++) {
+        UIImageView *particleView = [[UIImageView alloc] initWithImage:[UIImage imageNamed: images[i % images.count]]];
+        
+        particleView.alpha = 0.5;
+        particleView.backgroundColor = [UIColor clearColor];
+        particleView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize, BalloonPullToRefreshViewParticleSize);
+        
+        // Optionally:
+        //[self setCornerForView: particleView];
+        
+        [self addSubview: particleView];
+        [particles addObject: particleView];
+    }
+    _particles = particles;    
+}
+
+- (void)willMoveToSuperview:(UIView *)newSuperview {
     if (self.superview && newSuperview == nil) {
         //use self.superview, not self.scrollView. Why self.scrollView == nil here?
         UIScrollView *scrollView = (UIScrollView *)self.superview;
@@ -238,8 +244,8 @@ static char UIScrollViewPullToRefreshView;
     
     for (int i=0; i<self.particles.count; i++) {
  
-        float angle = - (i * 60 + animationStep * 5) * M_PI / 180;
-        float radius = 20.0;
+        float angle = - (i * BalloonPullToRefreshViewAnimationAngle + animationStep * 5) * M_PI / 180;
+        float radius = BalloonPullToRefreshViewAnimationRadius;
         
         UIView *particleView = self.particles [i];
 
@@ -317,9 +323,8 @@ static char UIScrollViewPullToRefreshView;
                         options: UIViewAnimationOptionCurveEaseOut
                      animations:^{
                          for (int i=0; i<self.particles.count; i++) {
-                             
-                             float angle = - (i * 60 + animationStep * 5) * M_PI / 180;
-                             float radius = 20.0;
+                             float angle = - (i * BalloonPullToRefreshViewAnimationAngle) * M_PI / 180;
+                             float radius = BalloonPullToRefreshViewAnimationRadius;
                              
                              UIView *particleView = self.particles [i];
                              
@@ -408,72 +413,27 @@ static char UIScrollViewPullToRefreshView;
     
     lastOffset = contentOffset * 2;
     
-    CGPoint point1 = [self calcNewCurvePointForBottomLeftViewForOffset: contentOffset];
-    CGPoint point2 = [self calcNewCurvePointForTopRightViewForOffset: contentOffset];
-    CGPoint point3 = [self calcNewCurvePointForMiddleRightViewForOffset: contentOffset];
-
     float ratio = (contentOffset / 2);
     
-    bottomLeftView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
-    bottomRightView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
-    topLeftView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
-    topRightView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
-    middleRightView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
-    middleLeftView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
-
     if (contentOffset == BalloonPullToRefreshViewTriggerAreaHeight / 2) {
         for (int i=0; i<self.particles.count; i++) {
             UIView *particleView = self.particles [i];
-            
             particleView.center = CGPointMake(ScreenWidth / 2, self.frame.size.height - contentOffset);
         }
     } else {
-        bottomLeftView.center = point1;
-        topLeftView.center = point2;
-        middleLeftView.center = point3;
-
-        // Reflect already calculated positions
-        topRightView.center = CGPointMake(ScreenWidth - point1.x, self.frame.size.height - 100 + (self.frame.size.height - point1.y));
-        bottomRightView.center = CGPointMake(ScreenWidth - point2.x, self.frame.size.height - 100 + (self.frame.size.height - point2.y));
-        middleRightView.center = CGPointMake(ScreenWidth - point3.x, self.frame.size.height - 100 + (self.frame.size.height - point3.y));        
+        for (int i=0; i<self.particles.count; i++) {
+            
+            float angle = - (i * BalloonPullToRefreshViewAnimationAngle + contentOffset) * M_PI / 180;
+            float radius = 200 - (contentOffset * 4);
+            
+            UIView *particleView = self.particles [i];
+            
+            particleView.frame = CGRectMake(0, 0, BalloonPullToRefreshViewParticleSize + ratio, BalloonPullToRefreshViewParticleSize + ratio);
+            particleView.center = CGPointMake((ScreenWidth / 2) + radius * cos (angle), self.frame.size.height - ((BalloonPullToRefreshViewTriggerAreaHeight / 2) + radius * sin(angle)));
+        }
     }
     
     [self setNeedsDisplay];
-}
-
-- (CGPoint) calcNewCurvePointForBottomLeftViewForOffset: (float)contentOffset {
-    
-    contentOffset *= 2;
-    contentOffset = (contentOffset) * M_PI / 180;
-    
-    float radius = 130.0;
-    
-    return CGPointMake((ScreenWidth / 2) + 22.5 + radius * cos (contentOffset), self.frame.size.height - ((BalloonPullToRefreshViewTriggerAreaHeight / 4) + radius * sin(contentOffset)) + 103);
-}
-
-
-- (CGPoint) calcNewCurvePointForTopRightViewForOffset: (float)contentOffset {
-    
-    contentOffset *= 2;
-    contentOffset = (contentOffset + BalloonPullToRefreshViewTriggerAreaHeight / 2) * M_PI / 180;
-    
-    float radius = 130.0;
-    
-    CGPoint point =  CGPointMake((ScreenWidth / 2) + 110 + radius * cos (contentOffset), self.frame.size.height - ((BalloonPullToRefreshViewTriggerAreaHeight / 4) + radius * sin(contentOffset)) + 40);
-    
-    return point;
-}
-
-- (CGPoint) calcNewCurvePointForMiddleRightViewForOffset: (float)contentOffset {
-    
-    contentOffset *= 2;
-    contentOffset = (contentOffset - BalloonPullToRefreshViewTriggerAreaHeight - 50) * M_PI / 180;
-    
-    float radius = 130.0;
-    
-    CGPoint point =  CGPointMake((ScreenWidth / 2) - 80 + radius * cos (contentOffset), self.frame.size.height - ((BalloonPullToRefreshViewTriggerAreaHeight / 4) + radius * sin(contentOffset)) - 125);
-    
-    return point;
 }
 
 -(void)setCornerForView: (UIView*)view {
